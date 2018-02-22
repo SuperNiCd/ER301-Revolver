@@ -6,7 +6,6 @@ local GainBias = require "Unit.ViewControl.GainBias"
 local Comparator = require "Unit.ViewControl.Comparator"
 local Fader = require "Unit.ViewControl.Fader"
 local Encoder = require "Encoder"
-local BasePlayer = require "builtins.Player.BasePlayer"
 local ModeSelect = require "Unit.MenuControl.ModeSelect"
 local Task = require "Unit.MenuControl.Task"
 local MenuHeader = require "Unit.MenuControl.Header"
@@ -17,7 +16,6 @@ local ply = app.SECTION_PLY
 
 local Revolver = Class{}
 Revolver:include(Unit)
-Revolver:include(BasePlayer)
 
 function Revolver:init(args)
   args.title = "Revolver"
@@ -34,13 +32,30 @@ function Revolver:onLoadGraph(pUnit,channelCount)
     local edge = self:createObject("Comparator","edge")
     edge:setTriggerMode()
 
+    --temporarily adding a sin osc
+    local f0 = self:createObject("GainBias","f0")
+    local f0Range = self:createObject("MinMax","f0Range")
+    local sinosc = self:createObject("SineOscillator","sinosc")
+
+
+    -- temporarily connect the V/oct up to the sine osc v/o in
+    connect(tune,"Out",tuneRange,"In")
+    connect(tune,"Out",sinosc,"V/Oct")
+    connect(f0,"Out",sinosc,"Fundamental")
+    connect(f0,"Out",f0Range,"In")
+    connect(sinosc,"Out",pUnit,"Out1")
+    if channelCount > 1 then
+      connect(sin,"Out",pUnit,"Out2")
+    end
+
     self:addBranch("V/oct","V/Oct",tune,"In")
     self:addBranch("trig","Trigger",edge,"In")
-
+    self:addBranch("f0","Fundamental",f0,"In")
 end
 
+-- Set up the local views.  Right now just V/oct and trig
 local views = {
-  expanded = {"tune", "trigger"},
+  expanded = {"tune", "trigger", "freq"},
   collapsed = {},
 }
 
@@ -61,9 +76,23 @@ function Revolver:onLoadViews(objects,controls)
         edge = objects.edge,
       }
 
+      controls.freq = GainBias {
+        button = "f0",
+        description = "Fundamental",
+        branch = self:getBranch("Fundamental"),
+        gainbias = objects.f0,
+        range = objects.f0Range,
+        biasMap = Encoder.getMap("oscFreq"),
+        biasUnits = app.unitHertz,
+        initialBias = 27.5,
+        gainMap = Encoder.getMap("freqGain"),
+        scaling = app.octaveScaling
+      }
+
   return views
 end
 
+-- These functions are required for selecting sample from the card or sample pool.
 function Revolver:setSample(sample)
   if self.sample then
     self.sample:release()
@@ -151,6 +180,7 @@ function Revolver:doAttachSampleFromPool()
   chooser:activate()
 end
 
+-- Set up the header menu for selecitng samples.
 local menu = {
   "sampleHeader",
   "pool",
