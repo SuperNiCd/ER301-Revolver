@@ -19,13 +19,19 @@ function Revolver:init(args)
 end
 
 function Revolver:onLoadGraph(pUnit,channelCount)
+
     local tune = self:createObject("ConstantOffset","tune")
     local tuneRange = self:createObject("MinMax","tuneRange")
+    local edge = self:createObject("Comparator","edge")
+    edge:setTriggerMode()
+
     self:addBranch("V/oct","V/Oct",tune,"In")
+    self:addBranch("trig","Trigger",edge,"In")
+
 end
 
 local views = {
-  expanded = {"tune"},
+  expanded = {"tune", "trigger"},
   collapsed = {},
 }
 
@@ -37,6 +43,13 @@ function Revolver:onLoadViews(objects,controls)
         description = "V/oct",
         offset = objects.tune,
         range = objects.tuneRange
+      }
+
+      controls.trigger = Comparator {
+        button = "trig",
+        branch = self:getBranch("Trigger"),
+        description = "Trigger",
+        edge = objects.edge,
       }
 
   return views
