@@ -27,22 +27,26 @@ end
 
 function Revolver:onLoadGraph(pUnit,channelCount)
 
+    app.log("Hello from the onLoadGraph function of Revolver.")
     local tune = self:createObject("ConstantOffset","tune")
     local tuneRange = self:createObject("MinMax","tuneRange")
     local edge = self:createObject("Comparator","edge")
     edge:setTriggerMode()
 
     --temporarily adding a sin osc
-    local f0 = self:createObject("GainBias","f0")
-    local f0Range = self:createObject("MinMax","f0Range")
+    -- local f0 = self:createObject("GainBias","f0")
+    -- local f0Range = self:createObject("MinMax","f0Range")
     local sinosc = self:createObject("SineOscillator","sinosc")
+    local f0 = self:createObject("Constant", "f0")
+    f0:hardSet("Value", 130.8)
 
 
     -- temporarily connect the V/oct up to the sine osc v/o in
     connect(tune,"Out",tuneRange,"In")
     connect(tune,"Out",sinosc,"V/Oct")
+    -- connect(f0,"Out",sinosc,"Fundamental")
+    -- connect(f0,"Out",f0Range,"In")
     connect(f0,"Out",sinosc,"Fundamental")
-    connect(f0,"Out",f0Range,"In")
     connect(sinosc,"Out",pUnit,"Out1")
     if channelCount > 1 then
       connect(sin,"Out",pUnit,"Out2")
@@ -55,7 +59,7 @@ end
 
 -- Set up the local views.  Right now just V/oct and trig
 local views = {
-  expanded = {"tune", "trigger", "freq"},
+  expanded = {"tune", "trigger"},
   collapsed = {},
 }
 
@@ -76,18 +80,18 @@ function Revolver:onLoadViews(objects,controls)
         edge = objects.edge,
       }
 
-      controls.freq = GainBias {
-        button = "f0",
-        description = "Fundamental",
-        branch = self:getBranch("Fundamental"),
-        gainbias = objects.f0,
-        range = objects.f0Range,
-        biasMap = Encoder.getMap("oscFreq"),
-        biasUnits = app.unitHertz,
-        initialBias = 27.5,
-        gainMap = Encoder.getMap("freqGain"),
-        scaling = app.octaveScaling
-      }
+      -- controls.freq = GainBias {
+      --   button = "f0",
+      --   description = "Fundamental",
+      --   branch = self:getBranch("Fundamental"),
+      --   gainbias = objects.f0,
+      --   range = objects.f0Range,
+      --   biasMap = Encoder.getMap("oscFreq"),
+      --   biasUnits = app.unitHertz,
+      --   initialBias = 27.5,
+      --   gainMap = Encoder.getMap("freqGain"),
+      --   scaling = app.octaveScaling
+      -- }
 
   return views
 end
